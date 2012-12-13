@@ -1,0 +1,9 @@
+I dub this language Zan.
+
+Pretty typical scripting language, I guess.  Dynamic typing, functional
+elements as Haskell-y as I can make 'em...
+
+Or just make it Lisp-y as hell.  As much as you can anyway.
+
+Compiles to bytecode.  The bytecode is relatively high level, probably stack
+based, has tagged types, etc...

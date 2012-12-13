@@ -1,0 +1,94 @@
+This is the design doc for the game that will run on this software.
+
+I want it to be space-based, at least partially.  Here's an idea...
+
+There is the Empire.  It is big and powerful and widely distributed, and
+interstellar FTL doesn't work.  So it's a bit like the Empire in 40k, in that
+most of what it does is run interstellar shit, and let planetary governers do
+whatever they want.  There are all sorts of races and sub-civilizations and
+such, possibly no real foreign threats.  Rebellion is crushed with an iron
+fist, taxes are paid, and beyond that they dont' care that much.
+
+Jerrad Holm (to pick a name at random), has recently been appointed Arch-Duke
+(because Arch-Duke is an awesome title) of a frontier system.  There's like, a
+hundred people there, so he's going around getting shit set up and microing
+colonies and basically playing Alien Legacy.
+
+The system has some asteroids, and a gas giant full of moons, and a reasonably
+Earth-y planet with a space elevator on it.  You probably start in the halfway
+station on the elevator, deciding whether to go up or down (not that you can't
+choose again later).
+
+
+I want real and cool space gameplay, with exploration, combat, crazy peoples,
+and other sweet stuff.  It'd be nice, at least.  We'll see if I want to do
+that much writing and programming.  
+
+
+Ideas: Real Economy, to some extent or another.  Or at least Real Game
+Economy.  Players get money and spend it on shit, shit gets used up or blowed
+up, and so on.
+
+Skill system?  Maybe.  It could be a good and simple method of advancement, if
+you keep it general enough...
+
+Escape pods, somewhat like EVE.  Except they don't get blowed up, so you don't
+bother with all this clone bullshit.  Murderers just get fucked up hardcore.
+
+Pirates and rebels could both be problems.  They will probably take part of
+the economy to some extent, so if they players go and shoot up pirates a lot,
+the pirates run out of money and can't do shit.  Of course, various political
+type people might fund them for their own reasons...
+
+Needs an Altar of Literacy before you create a character.
+
+
+
+Coded infrastructure:
+Ships
+Space movement
+EVA(?)
+Space combat
+Space mining
+Economy
+
+Use 'crew' as a fundamental unit, and have people with varying stats that
+affect the operation of the ship when part of the crew?  Might be a bit
+twinky with alts, might be a bit overdetailed with character systems
+
+Reputation among NPC's?  Faction standing, sorta.
+
+Economy
+Sources:
+NPC's (planet-based industries will sell food)
+Mining
+Refining/Manufacturing (value enhancement)
+Trade (value enhancement)
+
+Sinks:
+NPC's (planet-based industries will buy metals)
+Maintainence (ships, rent, etc)
+Combat
+Regular expenditures (mining drones, fuel, paying crew, munitions, etc)
+
+Commodities:
+Commodities should be game-useful to make a real economy.  Thus, items that
+players would want to produce and/or consume, not just a something to turn
+time into money.
+Minerals
+Refined goods: metal, fuel, polymers
+Simple/complex organics (ammonia vs. corn)
+Finished (ship) goods (weapons, ship bits)
+Fuel
+Ammo
+Food?
+Information? (maps, rumors...)
+Radioactives?
+
+Jobs:
+Prospecting
+Mining
+Trading
+Guarding/patrolling
+Bounty hunting
+Piracy

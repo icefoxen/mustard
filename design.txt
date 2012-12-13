@@ -1,0 +1,315 @@
+MUK
+Multi-User Kludge.
+We need a better name.
+MUphistopheles?  MURBLE (Multi-User Room-Based Lifelike Environment)?
+MUstard!
+
+Okay... design principles
+
+* Targetted for small to medium sized stuffs.  Definately not tuned for large
+systems with thousands of users.  Current database implementation works fairly
+well with a million objects, though.
+* Capability-based security.
+* Better programming than MUF/MPI.
+
+
+
+
+*World model.
+We have five types so far: Players, Areas, Objects, Programs and Links.
+Links are bi-directional.
+Areas, objects and players all know where they are.
+Programs and links have no location.
+Remember that once you decide what 'consistant' is, all write operations will
+have to make sure the database remains consistant.
+Premchaia emits, "Doing sanity checks at load-time can certainly be sensible,
+BTW, at least if they're O(N) in the database size."  nlogn probably wouldn't
+be too bad either.
+Premchaia speaks, "And providing active checks that can be explicitly
+triggered is a good idea."
+
+
+*Programming model.
+Hrmbl.  Concurrency and security are both high priorities.
+Resource limitations are also a concern.  That could probably be made to fall
+under security.
+
+Right now, I think we're going to make it go singlethreaded.  Making it
+multithreaded with database-level locking and worker threads running programs
+should be pretty easy, and certainly won't make performance worse.
+
+How do we invoke programs and determine scope?  The MUCK-style tree structure
+is compelling, but also vastly fragmented/fragmenting.  Registering programs
+should be something more formal, I think...
+
+Well, we could just make a tree-walker to find commands and a system for
+documenting them, that'd be simple.  We might just start with that though.
+
+
+A more or less fixed set of verbs that can be applied to every object, and
+each object can have its own behavior in response to them.
+Interactive-fiction style.
+Objects could listen for custom commands, so if there's no 'roll' verb, you
+could say "dice, roll" and such.  And each person can define their own
+reader-macro type things, one way or another, so they could type "'Hi" instead
+of "say Hi" and such.
+Users can also extend the verb set, but I dunno how that's gonna work,
+precisely.
+
+Basically, you have generic commands like "go" and "get" and "poke" and
+"squeeze".  Then for specific rooms and objects, you have more specific
+implementations of them, such as "throw ball" or "squeeze Ted" or such.
+You might have "with", "to", etc. options.  That also leads to
+autodisambiguation.
+"throw" -> throw what?  "throw ball" -> I don't know which one you mean!
+"throw red ball" -> invoke redball.throw()
+
+So that's one half of Premchaia's stuffs.  The other half is that users should
+be able to choose which commands they do or do not want to be overridden.  I'm
+having issues thinking about this...  So one could define extra verbs, but
+people would have to explicitly include them in their command-set.  This set
+should be mutable by others, to whom you have granted sufficient trust.  If
+you are in an area^W situation where a.foo is shadowed by b.foo, you should
+still be able to invoke a.foo explicitly.  Basically, the point is that nobody
+should be able to override a generic or add a new one to your vocabulary
+without consent of some form.
+
+One way is certainly to check when you run a local command, and say "are you
+sure you want to okay this?"  I guess that would be granting the program the
+capability to be invoked by the user (?)
+Or, assuming someone makes a new generic that shadows an old one (how is that
+different from specializing the generic?), when invoked it asks which one you
+want to use, and remembers when the same conflict happens again.
+A classical issue of this in MUCK is "w;west" confilicting with "w;whisper"
+
+Another issue of trust is that of creating new generics...  The scoping for
+them could also get interesting.  Perhaps sets/packages of generics?
+Interfaces, to use a Java-y term, with much the same meaning.
+
+I think that for now, we just aren't going to bother.  Generics shall have one
+name only, and no conflicts shall be allowed.
+
+*Interpreter
+OKAY.  We're going to have a bytecode interpreter to make the underlying
+programming model go, which will probably be the funkiest assembler ever, with
+instructions to manipulate capabilities, fiddle properties, and all sorts of
+shit.  It will probably have a "compile" instruction, to compile a program
+into bytecode.  Hellz yeah.
+How we're actually going to lay out the data in it, I dunno, though the
+OCamlness of the situation does mean we can just pattern match across a
+datatype, instead of doing funky things with actual numbers and shit.
+It'll probably be stack based and such.
+
+Each player has a certain amount of "money", call it computrons, that they use
+to "buy" computational resources: CPU, disk/database space, memory, maybe
+network I/O (that seems trickier).  So if you spend 1 computron to make a
+program, it will probably be running at the lowest priority with the least
+amount of memory, and can only make a very limited number of objects.  But if
+you spend 100, you will get a program that can do all sorts of cool shit.  And
+I intend to   This is probably gonna be pretty granular, so you can buy CPU
+priority, memory and storage and such all seperately.
+
+Now, how do I want to do it?  I could just give each player X computrons that
+are immutable and inexpendable... you put 3 computrons into making a program,
+you have X-3 left, and to get them back you have to disable/remove the
+program.  Or it can be sorta like rent, which might be a better system... each
+month or whatever you get X computrons, and then the amount of stuff you have
+charges upkeep to that balance (there may still be a cap on how many you can
+have at once).
+
+Also computrons should not accumulate past a point; so instead of getting 100
+per month, spending 10, and having a total of 190 the next month, it should
+just top you off to 100.  We can't create more computer time by hoarding it,
+after all.
+
+But then, who pays for it?  The invoker or the person who wrote the program?
+The former allows for sticky situations to occur where people can't do
+anything because they're out of quota, the latter allows for situations where
+one popular program eats up all of someone's program, and both allow for
+denial of service to occur on one side or another.
+Heh, why not make an even split?  Hmmmm.
+
+Round-robin scheduling with a certain amount of priority shouldn't be that
+hard.  Lower priority programs just get a smaller timeslice.  If we run it
+threaded with worker threads, it should be fairly doable.  Just use an endless
+queue.
+
+Error handling: Exceptions.  Just do it right and it oughta be okayish.
+
+What about programming language itself?  Hm.  Io, Scheme, Lua...
+
+
+Security model.
+Login is a special function, sadly.  Don't sweat it too much, dood.
+Other than that... there are no references to objects, there are instead
+capabilities.  Each object knows what capability it has given away, and can
+modify or revoke them at will.  
+
+
+
+
+
+NEW RETHINK
+Database
+ * Having it backed by SQLite solves many problems.  At this level, it is merely
+a flat setup.
+ * I was thinking of having a tree-structure of locations for things so one
+can organize a heirarchy, or multiple heirarchies.  But, we can have options
+to select on object attributes and get pretty much the same thing.
+list( /world1/public/programs, /world2/public/programs ) vs
+select( world1, world2, public, programs ).  Might take some database magic to
+do, but I think it can be done.
+ * If we expose dbref's, we have a potential security problem with being able
+to construct arbitrary references to objects.  If we don't, we have a UI
+problem of how to refer to objects with the same name.  One possible solution
+might be having each person have their own namespace of dbref's, another might
+be to use UUID's...  That's another problem that the previous location system
+might make solvable, or things might just have a unique name and a displayed
+name.  That's not a bad idea, perhaps.  The unique name might be constructed
+out of tags perhaps, for instance of the form type:creator:name:gensym.
+Another way might be to have an "identifier", which is unique but
+non-numerical, and a "name", which is non-unique and generally displayed.
+Or, Premchaia says they might have user-scope unique names that can be changed
+if necesary... not quite sure how that'd work.
+ * Either way, we should expose transactions to the API, so that programs can
+make sure objects stay consistant to themselves as well as to the database.
+Checkpointing, really.
+ * Include invokable/automatic ways to verify and sanity check it.
+
+Scheduler
+ * I control the interpreter, so having it be pre-emptive is really easy.
+ * It needs to have a real process table with PID, state (running, blocked,
+sleeping, dead), priority.  What else?  Quota statistics, foreground/
+background (is that even applicable?)...
+ * Priority, I think, will be fairly easy to do.  Either have the quantum size
+vary for higher or lower priority, or give higher priority tasks a leg up in
+the schedule queue.  Either way we have to be able to make some promises so
+low-priority programs, such as a malicious program, can't jam higher-priority
+programs, like a quota reaper process.
+ * Real daemons and such would be nice.
+ * Singlethreaded.  KISS.
+
+Programming language
+ * Security and multiprogramming are both high priority.
+ * Resources limitations should be possible, but adaptable.  Define mechanism,
+but not policy
+ * Libraries!
+ * Stack-based bytecode interpreter
+ * Meaningful exceptions and errors
+ * Make as few things as possible that lock the entire world state.  Nothing,
+ideally.
+ * Io, Lisp/Scheme, Lua, Icon...
+
+
+World model
+ * I would like to make it as orthogonal as possible, but really, Things Are
+Different From Other Things
+ * Areas - Contain things and players, connected to each other with links...
+ * Players - The only special thing about them, I suppose, is that they have a
+network connection associated with them...
+ * Programs - Not physical objects that can be picked up and walked around
+with.  Registered in some global way.  Can have scope limited.  Includes
+source code, compiled code, and documentation in one bundle.
+ * Links - Unidirectional.  Has no physical location, like programs (why would
+they need one?).  Locks are easy: have it possible to have a program which is
+invoked when someone passes through the link, and returns whether or not they
+are allowed.
+ * Things - Don't exist yet; KISS.
+ * I suppose that areas, things and players are fairly similar to each other,
+while programs and links are entirely different classes of objects.
+ * How are areas grouped?  Trees, like MUCK?  That seems decent for everything
+except program invocation.
+
+World programming model (API, I guess)
+ * How are programs invoked?  How are they tracked?  How are libraries
+handled?  How are arguments passed?  Can they have multiple entry points and
+different commands invoke different ones?  How is command invocation scoped?
+How are commands parsed?  How is non-initial I/O done (ie a program asks you
+something and waits for a response)?
+ * Non-initial I/O should be used carefully and clearly indicated where
+possible.  It makes things less stateful, and more secure because you always
+know where your commands are going.
+ * Capabilities occur here.  One way to imagine it is smalltalk-y, where every
+object has a set of methods upon it.  Those methods are capabilities.
+ * Capabilities are functions, and thus can be combinator'ified.  For
+instance, a capability to access property X on object A, and a capability to
+access property Y on object A, can be smooshed together to a capability to
+access property X or Y on object A.  This can then also be wrapped in code to
+restrict it again to only access Y, and handed to someone else.
+Doing this EFFICIENTLY, now, might be a headache...  -_-
+
+World interface
+ * How do you do things?  Go places?  Create things?  Interact with things?
+Talk to people?  Invoke programs?
+ * Pipelining commands would be nice, a la Premchaia's Dominion program.
+ * I think we should have an actual command interpreter, or rather, a more
+powerful one than bleedin' MUCK.
+ * I've figured out how to kill dbref's-as-numbers.  Fundamental principles:
+Everybody is a seperate namespace that can re-label and refer to a registry of
+references with unique names, and there are primitives to acquire and pass
+references around without touching the numbers directly.
+---
+Old system:
+"Can I teleport to your place?
+"Sure, the dbref is #12345
+<time passes, they make a new house and recycle the old one, it gets replaced
+by something else>
+@tel me=#12345 --> undefined behavior
+New system:
+"Can I teleport to your place?
+"Sure, let me send you a link
+!! <foo> has sent you a reference, type 'getreffrom <foo> <refname>' to get
+it.
+I type 'getreffrom foo foos-home'
+@tel me=^foos-home
+<time passes, they make a new house and recycle the old one, it gets replaced
+by something else --either the reference is explicitly broken, or we don't
+reuse the damn dbref number!>
+@tel me=^foos-home
+!! Error: object referred to by foos-home no longer exists!  Reference
+removed.
+---
+We can do this in two ways: First is to never reuse (internal) dbrefs, which
+risks running out of them over very large systems, and that's not a problem
+that can really be fixed very easily.  You'd basically have to garbage-collect
+all dbref's... icky.  However!  dbrefs can be removed, as long as each object
+has a creation date and each reference has a creation date.  On each
+dereference, it checks to see if the object's creation date is older or newer
+than the reference's.  If newer, the link is broken.
+...though that essentially equates to turning the dbref number into a bigger
+dbref number that is guaranteed to be unique...
+ * There is a rather severe disjoint of programs on MUCK that operate on
+local targets only vs. ones that work on remote or local targets.  Make this
+more consistent.
+ * Stateful programs should have some way of indicating their state, a la
+output prefixes in Premchaia's Dominion.  Programs of different types should
+have different prefixes.
+
+Tools
+ * A standard way of dumping and re-creating things.  Programs, objects,
+entire areas.  Make sure it checks permissions, verifies everything, and rolls
+the whole thing back if it doesn't succeed.
+ * Web interface for things?  Might be interesting for some things, like
+browsing programs and documentation and such.
+ * A log-dump program
+ * 
+
+
+Future plans
+ * Implement a richer protocol, a compatibility mode, and a client
+implementing it.
+
+ * Erlang caveats: Check out the licence, and make sure you document resource
+limits (particularly max atoms and max ports/sockets, everything else should
+be ok)
+
+
+Links:
+ * MOO programmer's manual:
+ * ftp://ftp.lambda.moo.mud.org/pub/MOO/ProgrammersManual.html
+ * Thoughts on an Erlang MUD
+ * http://erlang.org/pipermail/erlang-questions/2001-March/002976.html
+ * Distributed Erlang games in general
+ * http://www.erlang-fr.org/articles/thierry_mallard_001-en.html
+ * Python MOO
+ * http://www.strout.net/python/poo/index.html

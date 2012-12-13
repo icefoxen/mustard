@@ -1,0 +1,231 @@
+A probably hopelessly top-down way of defining the system.  They are grouped
+loosely by associated object or module.
+
+For now, let us assume that it is using Lua.  Using Erlang directly... has
+some problems.
+
+Or I could just write the damn thing in Haskell.  Does Haskell have access to
+its compiler?  GHC does, in a sorta experimental fashion...  no great
+advantage there.  Looks like I'm going to be writing a compiler/interpreter no
+matter what, of one twisted form or another.
+
+Anyway!  This should be at least vaguely complete by now.
+
+
+COMMON OPERATIONS
+These are shared among all types of objects.
+
+addProp
+hasProp
+getProp
+setProp
+
+getName
+setName
+
+time created
+time last modified
+time last used (?)
+number of uses
+
+PLAYERS 
+location
+inventory
+
+move
+give
+take
+
+caps
+sendCap
+getCap
+renameCap
+delCap
+
+connection status (connected/disconnected) , number of connections
+last connection
+Connection time
+idle time
+timeout threshold
+connection is encrypted?  Protection levels
+connection remote IP 
+
+
+THINGS
+move
+
+AREAS
+parent (???  Or some method of grouping areas)
+contents
+links
+add (adds something to it)
+move ((re)moves something to somewhere else)
+
+
+LINKS
+from
+to
+follow (moves a player from the source, if they exist there, to the dest, if
+they're allowed there)
+
+PROGRAMS
+run
+getText
+setText
+compile
+uncompile/disassemble
+compiled?
+
+caps
+giveCap
+getCap
+renameCap
+delCap
+
+some sort of debugging
+
+instances
+
+PROCESSES
+program
+runtime
+priority
+invoker/permissions group/quota group
+
+sleep
+pause/resume
+terminate
+kill
+
+quota functions...
+
+process -- returns current process
+prog -- returns program the process is an instance of
+trigger -- returns something specifying how the program was called
+
+General timeout-y function, like poll(2)
+
+low-level database access
+database transactions
+non-database transactions
+
+fork, wait, queue, pid, 
+
+Functions to query and manipulate the process queue itself
+
+PARSING
+
+I/O 
+tellPlayer
+tellArea
+tellAll
+
+read
+
+STRINGS
+Usual array of data structure operations
+Have globs and regexps, if not generalized parsers.
+
+LISTS
+Usual array of data structure operations
+
+MAP
+Usual array of data structure operations
+
+SET
+Usual array of data structure operations
+
+MATH
+Usual array of mathly operations
+Includes random number generation
+
+TIME
+Usual array of timely operations
+
+MISC
+Miscellaneous operations
+
+createArea
+createThing
+createLink
+createProgram
+createPlayer (and inverses of all the above)
+
+allOnline
+
+
+
+Programs that will probably exist to make the system work, but not be part of
+the core system:
+<--Most systemly-->
+cron/scheduler, process interface
+
+Some way of making things happen on connect and on server start, as well as on
+disconnect and on server stop
+
+Item/program registry
+
+Economy and/or quota
+
+Building, editing and inspection primitives
+
+Locks
+
+Sense, movement and interaction primitives
+<--Most userly-->
+
+
+Things to think about: 
+Puppets
+
+Vehicles
+
+Small MPI-ish scripts, for inline desc-type things and such
+
+IO; MUCK does it by foreground/background programs, foreground blocks on user
+input, background does not.  We should generally not have stateful input, but
+it DOES have to happen sometimes; editors, for instance.
+
+Some way to hint programs on the desired latency?
+
+Hooks for events; @succ, @fail, and friends.
+Possible events: Person picks up/drops an item, enters/leaves a room...
+Make sure userspace can create new types of events
+
+Hooks in general.
+
+Libraries and modules
+
+Logging
+
+Low-level database trawling functions, for things like 'find'
+
+The create functions should be restricted from the user somehow; one should
+have to go through an intermediate factory program to create things.  This
+lets one implement object tracking and quotas and such.
+
+Error handling
+
+Pronoun substitution?
+
+ANSI colors
+
+Password hashing
+
+Are properties strongly typed, dynamically typed, untyped?
+
+Properties list
+
+
+
+
+
+
+Programming things to think about:
+How the FUCK are programs invoked, dude?  Handle it!
+
+me, here, match
+
+Well.  It makes sense for any program to be given its invoker.  And from that
+you can find out where the invoker is, if you are given permission to.
+

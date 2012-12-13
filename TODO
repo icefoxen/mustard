@@ -1,0 +1,13 @@
+Make SSL go
+Look more in-depth into MD5, SHA1, SHA512, etc.
+Threading, non-blocking sockets, etc.
+
+
+Okay, order of operations:
+To make the UI go, I have to make scripting go.
+To make scripting go, I have to define a programming language, program
+model (invocation, etc), bytecode interpreter, and libraries.
+To make the bytecode interpreter, I need the database API.
+To make the database API, I need a capability system, and an error handling
+system.
+Man.
