@@ -33,7 +33,7 @@ let rec serverLoop (listener:TcpListener) =
   printf "Got connection\n"
   let t = 
     handleClient client
-    |> Async.StartChildAsTask
+    |> Async.StartChild
     |> Async.RunSynchronously
   serverLoop listener
 
