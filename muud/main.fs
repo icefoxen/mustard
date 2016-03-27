@@ -17,6 +17,7 @@ let handleClient (client : TcpClient) =
       let returnMessage = Array.rev bytes.[0..i-1]
       stream.Write(returnMessage, 0, i)
       printf "Wrote message back: '%A'\n" returnMessage
+      loop () |> Async.RunSynchronously
     }
   loop ()
 
@@ -31,7 +32,8 @@ let listen () =
     printf "Waiting for connection\n"
     let client = listener.AcceptTcpClient ()
     printf "Got connection\n"
-    handleClient client
+    handleClient client |> Async.RunSynchronously
+    loop ()
 
   loop ()
 
