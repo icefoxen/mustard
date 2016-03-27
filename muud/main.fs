@@ -21,16 +21,21 @@ let handleClient (client : TcpClient) = async {
       printf "Wrote message back: '%A'\n" returnMessage
       loop ()
     else
-      printf "Client disconnected??? %A\n" client.Connected
+      // XXX: Detecting that the client has closed the
+      // connection is a little opaque...
+      printf "Client disconnected??? %A\n" stream.CanRead
   loop ()
   }
 
-let rec serverLoop (listener:TcpListener) tasks =
+let rec serverLoop (listener:TcpListener) =
   printf "Waiting for connection\n"
   let client = listener.AcceptTcpClient ()
   printf "Got connection\n"
-  let t = handleClient client |> Async.RunSynchronously
-  serverLoop listener (t::tasks)
+  let t = 
+    handleClient client
+    |> Async.StartChildAsTask
+    |> Async.RunSynchronously
+  serverLoop listener
 
 
 let listen () =
@@ -38,7 +43,7 @@ let listen () =
   let port = 9999
   let listener = new TcpListener(address, port)
   listener.Start()
-  serverLoop listener []
+  serverLoop listener 
 
 let main () =
   printf "Hello world!\n"
