@@ -7,8 +7,8 @@ let handleClient (client : TcpClient) =
   let stream = client.GetStream()
   let bufflen = 256
   let bytes : byte array = Array.zeroCreate bufflen
-  let rec loop () =
-    let i = stream.Read(bytes, 0, bufflen)
+  let rec loop () = async {
+    let! i = stream.AsyncRead(bytes, 0, bufflen)
     if i = 0 then
       ()
     else
@@ -17,6 +17,7 @@ let handleClient (client : TcpClient) =
       let returnMessage = Array.rev bytes.[0..i-1]
       stream.Write(returnMessage, 0, i)
       printf "Wrote message back: '%A'\n" returnMessage
+    }
   loop ()
 
 
@@ -37,6 +38,6 @@ let listen () =
 
 let main () =
   printf "Hello world!\n"
-  listen ()
+  listen () |> Async.RunSynchronously
 
 main ()
