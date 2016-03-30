@@ -2,8 +2,10 @@ module Muud
 
 open System.Collections.Generic
 
+open System
 open System.Net
 open System.Net.Sockets
+open System.Threading.Tasks
 
 // So let's make a proper talk server.
 // What one client types out will be echoed
@@ -31,7 +33,7 @@ type TalkerServer() =
       printf "Got connection\n"
       let tc = TalkerClient tcpclient
       this.AddClient tc |> ignore
-      tc.MessageLoop this |> Async.Start
+      tc.MessageLoop this |> ignore
       loop listener
 
     let listener = TcpListener (address,port)
@@ -53,18 +55,34 @@ type TalkerServer() =
   member this.SendToClients (str:string) =
     printf "Sending to clients: %A\n" str
     printf "We have %d clients\n" Clients.Count
-    //let bytes = System.Text.Encoding.ASCII.GetBytes(str)
     for client in Clients do
       printf "Sending to client %A\n" client
       client.SendMessage str |> ignore
-      //let stream = client.GetStream()
-      //stream.Write(bytes, 0, bytes.Length)
       printf "Sent to client %A\n" client
 
 
 and TalkerClient (tcpclient:TcpClient) =
   let client = tcpclient
   let stream = tcpclient.GetStream ()
+  let bufflen = 1024
+  let buffer : byte array = Array.zeroCreate bufflen
+
+
+  let handleMessage (this:TalkerClient) (server:TalkerServer) (task : Task<int>) = 
+    let i = task.Result
+
+    printf "Got %d bytes\n" i
+    if i <> 0 then
+      let str = System.Text.Encoding.ASCII.GetString(buffer, 0, i)
+      server.ReceiveMessage str
+      this.MessageLoop server
+    else
+      // XXX: Detecting that the client has closed the
+      // connection is a little opaque...
+      // This is entirely wrong, unfortunately.
+      // Also the client stream needs to be closed.
+      printf "Client disconnected??? %A %A %A\n" stream.CanRead client.Available client.Connected
+      server.RemoveClient this  |> ignore
 
   member this.SendMessage (str:string) =
     let bytes : byte array = System.Text.Encoding.ASCII.GetBytes(str)
@@ -73,39 +91,15 @@ and TalkerClient (tcpclient:TcpClient) =
   member this.IsClientConnected () =
     true
 
-  member this.MessageLoop (server:TalkerServer) = async {
-    let bufflen = 1024
-    let bytes : byte array = Array.zeroCreate bufflen
+
+  member this.MessageLoop (server:TalkerServer) = 
     let rec loop () = 
       printf "Getting input from client\n"
-      let i = stream.Read(bytes, 0, bufflen)
-      printf "Got %d bytes\n" i
-      if i <> 0 then
-        let str = System.Text.Encoding.ASCII.GetString(bytes, 0, i)
-        server.ReceiveMessage str
-        //printf "Got %s\n" str
-        //stream.Write(returnMessage, 0, i)
-        //printf "Wrote message back: '%A'\n" returnMessage
-        loop ()
-      else
-        // XXX: Detecting that the client has closed the
-        // connection is a little opaque...
-        // This is entirely wrong, unfortunately.
-        // Also the client stream needs to be closed.
-        printf "Client disconnected??? %A %A %A\n" stream.CanRead client.Available client.Connected
-        server.RemoveClient this  |> ignore
-    loop ()
-    }
-
-
-let rec serverLoop (server:TalkerServer) (listener:TcpListener) =
-  printf "Waiting for connection\n"
-  let tcpclient = listener.AcceptTcpClient ()
-  printf "Got connection\n"
-  let tc = new TalkerClient(tcpclient)
-  server.AddClient tc |> ignore
-  tc.MessageLoop server |> Async.Start
-  serverLoop server listener
+      //let i = stream.Read(bytes, 0, bufflen)
+      let task = stream.ReadAsync(buffer, 0, bufflen)
+      let cont : Action<Task<int>> = Action<Task<int>>(handleMessage this server)
+      task.ContinueWith(cont)
+    loop () |> ignore
 
 
 let listen () =
