@@ -22,7 +22,7 @@ open System.Net.Sockets
 // 
 
 type TalkerServer() = 
-  let mutable Clients = new HashSet<TcpClient>()
+  let mutable Clients = new HashSet<TalkerClient>()
 
   member this.AddClient c =
     printf "Adding client %A\n" c
@@ -35,15 +35,16 @@ type TalkerServer() =
   member this.SendToClients (str:string) =
     printf "Sending to clients: %A\n" str
     printf "We have %d clients\n" Clients.Count
-    let bytes = System.Text.Encoding.ASCII.GetBytes(str)
+    //let bytes = System.Text.Encoding.ASCII.GetBytes(str)
     for client in Clients do
       printf "Sending to client %A\n" client
-      let stream = client.GetStream()
-      stream.Write(bytes, 0, bytes.Length)
+      client.SendMessage(str)
+      //let stream = client.GetStream()
+      //stream.Write(bytes, 0, bytes.Length)
       printf "Sent to client %A\n" client
 
 
-type TalkerClient(tcpclient:TcpClient) =
+and TalkerClient(tcpclient:TcpClient) =
   let client = tcpclient
   let stream = tcpclient.GetStream()
 
@@ -74,9 +75,10 @@ type TalkerClient(tcpclient:TcpClient) =
         // This is entirely wrong, unfortunately.
         // Also the client stream needs to be closed.
         printf "Client disconnected??? %A %A %A\n" stream.CanRead client.Available client.Connected
-        server.RemoveClient(client) |> ignore
+        server.RemoveClient(this) |> ignore
     loop ()
 
+(*
 let handleClient (server:TalkerServer) (client : TcpClient) = async {
   printf "Handling client...\n"
   server.AddClient(client) |> ignore
@@ -103,14 +105,18 @@ let handleClient (server:TalkerServer) (client : TcpClient) = async {
       server.RemoveClient(client) |> ignore
   loop ()
   }
+  *)
 
 let rec serverLoop (server:TalkerServer) (listener:TcpListener) =
   printf "Waiting for connection\n"
-  let client = listener.AcceptTcpClient ()
+  let tcpclient = listener.AcceptTcpClient ()
   printf "Got connection\n"
-  let t = 
-    handleClient server client
-    |> Async.Start
+  let tc = new TalkerClient(tcpclient)
+  server.AddClient(tc) |> ignore
+  tc.MessageLoop(server)
+  //let t = 
+  //  handleClient server client
+  //  |> Async.Start
     //|> Async.RunSynchronously
   serverLoop server listener
 
