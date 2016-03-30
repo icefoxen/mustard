@@ -32,6 +32,9 @@ type TalkerServer() =
     printf "Removing client %A\n" c
     Clients.Remove(c)
 
+  member this.ReceiveMessage str =
+    this.SendToClients str
+
   member this.SendToClients (str:string) =
     printf "Sending to clients: %A\n" str
     printf "We have %d clients\n" Clients.Count
@@ -55,7 +58,7 @@ and TalkerClient(tcpclient:TcpClient) =
   member this.IsClientConnected () =
     true
 
-  member this.MessageLoop (server:TalkerServer) =
+  member this.MessageLoop (server:TalkerServer) = async {
     let bufflen = 1024
     let bytes : byte array = Array.zeroCreate bufflen
     let rec loop () = 
@@ -64,7 +67,7 @@ and TalkerClient(tcpclient:TcpClient) =
       printf "Got %d bytes\n" i
       if i <> 0 then
         let str = System.Text.Encoding.ASCII.GetString(bytes, 0, i)
-        server.SendToClients(str)
+        server.ReceiveMessage(str)
         //printf "Got %s\n" str
         //stream.Write(returnMessage, 0, i)
         //printf "Wrote message back: '%A'\n" returnMessage
@@ -77,35 +80,8 @@ and TalkerClient(tcpclient:TcpClient) =
         printf "Client disconnected??? %A %A %A\n" stream.CanRead client.Available client.Connected
         server.RemoveClient(this) |> ignore
     loop ()
+    }
 
-(*
-let handleClient (server:TalkerServer) (client : TcpClient) = async {
-  printf "Handling client...\n"
-  server.AddClient(client) |> ignore
-  let stream = client.GetStream()
-  let bufflen = 256
-  let bytes : byte array = Array.zeroCreate bufflen
-  let rec loop () = 
-    printf "Getting input from client\n"
-    let i = stream.Read(bytes, 0, bufflen)
-    printf "Got %d bytes\n" i
-    if i <> 0 then
-      let str = System.Text.Encoding.ASCII.GetString(bytes, 0, i)
-      server.SendToClients(str)
-      //printf "Got %s\n" str
-      //stream.Write(returnMessage, 0, i)
-      //printf "Wrote message back: '%A'\n" returnMessage
-      loop ()
-    else
-      // XXX: Detecting that the client has closed the
-      // connection is a little opaque...
-      // This is entirely wrong, unfortunately.
-      // Also the client stream needs to be closed.
-      printf "Client disconnected??? %A %A %A\n" stream.CanRead client.Available client.Connected
-      server.RemoveClient(client) |> ignore
-  loop ()
-  }
-  *)
 
 let rec serverLoop (server:TalkerServer) (listener:TcpListener) =
   printf "Waiting for connection\n"
@@ -113,7 +89,7 @@ let rec serverLoop (server:TalkerServer) (listener:TcpListener) =
   printf "Got connection\n"
   let tc = new TalkerClient(tcpclient)
   server.AddClient(tc) |> ignore
-  tc.MessageLoop(server)
+  tc.MessageLoop(server) |> Async.Start
   //let t = 
   //  handleClient server client
   //  |> Async.Start
