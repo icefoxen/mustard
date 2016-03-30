@@ -1,5 +1,7 @@
 module Muud
 
+open System.Collections.Generic
+
 open System.Net
 open System.Net.Sockets
 
@@ -20,19 +22,21 @@ open System.Net.Sockets
 // 
 
 type TalkerServer() = 
-  let mutable Clients : TcpClient list= []
+  let mutable Clients :HashSet<TcpClient> = new HashSet<TcpClient>()
 
   member this.AddClient c =
     printf "Adding client %A\n" c
-    Clients <- c :: Clients
+    //Clients <- c :: Clients
+    Clients.Add(c)
 
   member this.RemoveClient c =
     printf "Removing client %A\n" c
     //this.Clients = this.Clients.Remove(c)
+    Clients.Remove(c)
 
   member this.SendToClients (str:string) =
     printf "Sending to clients: %A\n" str
-    printf "We have %d clients\n" Clients.Length
+    printf "We have %d clients\n" Clients.Count
     let bytes = System.Text.Encoding.ASCII.GetBytes(str)
     for client in Clients do
       printf "Sending to client %A\n" client
@@ -40,6 +44,17 @@ type TalkerServer() =
       stream.Write(bytes, 0, bytes.Length)
       printf "Sent to client %A\n" client
 
+type TalkerClient(tcpclient) =
+  let client = tcpclient
+
+  member this.SendMessage str =
+    ()
+
+  member this.IsClientConnected () =
+    true
+
+  member this.MessageLoop () =
+    ()
 
 let handleClient (server:TalkerServer) (client : TcpClient) = async {
   printf "Handling client...\n"
