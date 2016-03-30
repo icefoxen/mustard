@@ -22,7 +22,22 @@ open System.Net.Sockets
 // 
 
 type TalkerServer() = 
-  let mutable Clients = new HashSet<TalkerClient>()
+  let Clients = HashSet<TalkerClient> ()
+
+  member this.StartListening address port =
+    let rec loop (listener:TcpListener) =
+      printf "Waiting for connection\n"
+      let tcpclient = listener.AcceptTcpClient ()
+      printf "Got connection\n"
+      let tc = TalkerClient tcpclient
+      this.AddClient tc |> ignore
+      tc.MessageLoop this |> Async.Start
+      loop listener
+
+    let listener = TcpListener (address,port)
+    listener.Start ()
+    loop listener
+
 
   member this.AddClient c =
     printf "Adding client %A\n" c
@@ -41,19 +56,19 @@ type TalkerServer() =
     //let bytes = System.Text.Encoding.ASCII.GetBytes(str)
     for client in Clients do
       printf "Sending to client %A\n" client
-      client.SendMessage(str)
+      client.SendMessage str |> ignore
       //let stream = client.GetStream()
       //stream.Write(bytes, 0, bytes.Length)
       printf "Sent to client %A\n" client
 
 
-and TalkerClient(tcpclient:TcpClient) =
+and TalkerClient (tcpclient:TcpClient) =
   let client = tcpclient
-  let stream = tcpclient.GetStream()
+  let stream = tcpclient.GetStream ()
 
   member this.SendMessage (str:string) =
     let bytes : byte array = System.Text.Encoding.ASCII.GetBytes(str)
-    stream.Write(bytes, 0, bytes.Length)
+    stream.WriteAsync(bytes, 0, bytes.Length)
 
   member this.IsClientConnected () =
     true
@@ -67,7 +82,7 @@ and TalkerClient(tcpclient:TcpClient) =
       printf "Got %d bytes\n" i
       if i <> 0 then
         let str = System.Text.Encoding.ASCII.GetString(bytes, 0, i)
-        server.ReceiveMessage(str)
+        server.ReceiveMessage str
         //printf "Got %s\n" str
         //stream.Write(returnMessage, 0, i)
         //printf "Wrote message back: '%A'\n" returnMessage
@@ -78,7 +93,7 @@ and TalkerClient(tcpclient:TcpClient) =
         // This is entirely wrong, unfortunately.
         // Also the client stream needs to be closed.
         printf "Client disconnected??? %A %A %A\n" stream.CanRead client.Available client.Connected
-        server.RemoveClient(this) |> ignore
+        server.RemoveClient this  |> ignore
     loop ()
     }
 
@@ -88,22 +103,16 @@ let rec serverLoop (server:TalkerServer) (listener:TcpListener) =
   let tcpclient = listener.AcceptTcpClient ()
   printf "Got connection\n"
   let tc = new TalkerClient(tcpclient)
-  server.AddClient(tc) |> ignore
-  tc.MessageLoop(server) |> Async.Start
-  //let t = 
-  //  handleClient server client
-  //  |> Async.Start
-    //|> Async.RunSynchronously
+  server.AddClient tc |> ignore
+  tc.MessageLoop server |> Async.Start
   serverLoop server listener
 
 
 let listen () =
   let address = IPAddress.Any
   let port = 9999
-  let listener = new TcpListener(address, port)
-  let server = new TalkerServer()
-  listener.Start()
-  serverLoop server listener 
+  let server = TalkerServer ()
+  server.StartListening address port
 
 let main () =
   printf "Hello world!\n"
