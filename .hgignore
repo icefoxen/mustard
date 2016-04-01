@@ -16,3 +16,6 @@ a.out
 *.hi
 *.mdb
 *.pdb
+*.beam
+
+Muud/Muud/obj/
