@@ -1,5 +1,4 @@
-module Muud
-
+﻿
 open System.Collections.Generic
 
 open System
@@ -108,8 +107,7 @@ let listen () =
   let server = TalkerServer ()
   server.StartListening address port
 
-let main () =
+[<EntryPoint>]
+let main argv =
   printf "Hello world!\n"
   listen ()
-
-main ()
